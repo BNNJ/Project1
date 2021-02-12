@@ -56,6 +56,13 @@ def scrapeBook(soup, url):
 		)
 	)
 	desc = product_page.find(id="product_description").find_next_sibling('p').string
+	rating_lookup = {
+		'One': 1,
+		'Two': 2,
+		'Three': 3,
+		'Four': 4,
+		'Five': 5
+	}
 
 	return {
 		'product_page_url': url,
@@ -66,7 +73,7 @@ def scrapeBook(soup, url):
 		'number_available': int(''.join(filter(str.isdigit, table_data['availability']))),
 		'product_description': desc[:desc.index(".", 120)] + "...",
 		'category': "/".join([a.string for a in soup.find(class_="breadcrumb").findAll("a")[2:]]),
-		'review_rating': "",
+		'review_rating': rating_lookup[product_page.find(class_="star-rating")['class'][1]],
 		'image_url': joinUrls(url, product_page.img['src'])
 	}
 
