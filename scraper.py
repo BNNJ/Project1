@@ -7,6 +7,17 @@ from bs4 import BeautifulSoup
 #logger = logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
 
+def joinUrls(*args):
+	url_parts = [arg.split('/') for arg in args]
+	url_parts = [part for part_list in url_parts for part in part_list if part]
+	url = []
+	for part in url_parts:
+		if part == ".." and url:
+			url.pop()
+		else:
+			url.append(part)
+	return "/".join(url)
+
 """
 returns a dictionary containing basic data about the book :
 product_page_url
@@ -31,7 +42,7 @@ def scrapeBook(soup, url):
 	table = product_page.find('table')
 	table_data_keys = [
 		'UPC',
-		'type',			# maybe ?
+		'type',
 		'price_excluding_tax',
 		'price_including_tax',
 		'tax',
@@ -52,26 +63,12 @@ def scrapeBook(soup, url):
 		'title': soup.h1.string,
 		'price_including_tax': table_data['price_including_tax'][1:],
 		'price_excluding_tax': table_data['price_excluding_tax'][1:],
-		'number_available': "",
+		'number_available': int(''.join(filter(str.isdigit, table_data['availability']))),
 		'product_description': desc[:desc.index(".", 120)] + "...",
 		'category': "/".join([a.string for a in soup.find(class_="breadcrumb").findAll("a")[2:]]),
 		'review_rating': "",
-		'image_url': ""
+		'image_url': joinUrls(url, product_page.img['src'])
 	}
-	# infos = {}
-	# infos['product_url'] = url
-	# infos['upc'] = 
-	# infos['title'] = soup.h1.string
-	# infos['price_including_tax'] = 
-	# infos['price_excluding_tax'] = 
-	# infos['number_available'] = 
-	# desc = product_page.find(id="product_description").find_next_sibling('p').string
-	# infos['product_description'] = desc[:desc.index(".", 120)] + "..."
-	# infos['category'] = 
-	# infos['review_rating']
-	# infos['image_url'] = product_page.img['src']
-
-	# return infos
 
 """
 wrapper around the scrapeFunction to avoid repeating the basic stuff
@@ -90,28 +87,9 @@ def scrapePage(url, scrapeFunction):
 def main():
 	url = "http://books.toscrape.com/catalogue/foundation-foundation-publication-order-1_375/index.html"
 	book_data = scrapePage(url, scrapeBook)
-	{print("# " + k + ":\n" + v) for (k, v) in book_data.items()}
+	{print("# " + k + ":\n" + repr(v)) for (k, v) in book_data.items()}
 
 if __name__ == "__main__":
 	main()
 else:
 	print("HELLO THERE")
-
-
-		# info_table = product_page.find(class_="table")
-		# infos_keys = [
-		# 	'UPC',
-		# 	'type',			# maybe ?
-		# 	'price_excluding_tax',
-		# 	'price_including_tax',
-		# 	'tax',
-		# 	'availability',
-		# 	'number_of_reviews'
-		# ]
-		# infos = dict(
-		# 	zip(
-		# 		[tag.string for tag in info_table.find_all("th")],
-		# 		infos_keys,
-		# 		[tag.string for tag in info_table.find_all("td")]
-		# 	)
-		# )
