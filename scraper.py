@@ -16,6 +16,8 @@ def joinUrls(*args):
 			url.pop()
 		else:
 			url.append(part)
+	if url[0] == "http:":
+		url[0] += '/'
 	return "/".join(url)
 
 """
@@ -31,7 +33,7 @@ category
 review_rating
 image_url
 """
-def scrapeBook(soup, url):
+def scrapeBookData(soup, url):
 	"""
 	first reduce the scope a bit, so we're not looking through the whole html page
 	product_page contains all the info about the book (except, somehow, the title
@@ -40,6 +42,7 @@ def scrapeBook(soup, url):
 	"""
 	product_page = soup.find("article", class_="product_page")
 	table = product_page.find('table')
+	
 	table_data_keys = [
 		'UPC',
 		'type',
@@ -55,7 +58,9 @@ def scrapeBook(soup, url):
 			[td.string for td in table.findAll("td")]
 		)
 	)
+	
 	desc = product_page.find(id="product_description").find_next_sibling('p').string
+	
 	rating_lookup = {
 		'One': 1,
 		'Two': 2,
@@ -77,6 +82,20 @@ def scrapeBook(soup, url):
 		'image_url': joinUrls(url, product_page.img['src'])
 	}
 
+def scrapeBookLinks(soup, url):
+	articles = soup.findAll("article")
+	links = [joinUrls(url[:url.rfind("/")], article.find("a")['href']) for article in articles]
+	pager = soup.find(class_="pager")
+	if pager != None and pager.find(class_="next"):
+		next_page = pager.find(class_="next").a['href']
+		links += scrapePage(joinUrls(url[:url.rfind("/")], next_page), scrapeBookLinks)
+	return links
+
+def scrapeCategories(soup, url):
+	nav_list = soup.find(class_="nav nav-list").ul
+	categories = [joinUrls(url[:url.rfind("/")], a['href']) for a in nav_list.findAll("a")]
+	return categories
+
 """
 wrapper around the scrapeFunction to avoid repeating the basic stuff
 """
@@ -92,9 +111,18 @@ def scrapePage(url, scrapeFunction):
 		print(repr(e))
 
 def main():
-	url = "http://books.toscrape.com/catalogue/foundation-foundation-publication-order-1_375/index.html"
-	book_data = scrapePage(url, scrapeBook)
-	{print("# " + k + ":\n" + repr(v)) for (k, v) in book_data.items()}
+	url_foundation = "http://books.toscrape.com/catalogue/foundation-foundation-publication-order-1_375/index.html"
+	url_sciencefiction = "http://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+	url_fiction = "http://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+	url_home = "http://books.toscrape.com/index.html"
+
+	categories = scrapePage(url_home, scrapeCategories)
+	# [print(cat) for cat in categories]
+	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories]
+	books_links = [book for cat in books_links for book in cat]
+	# [print(link) for link in books_links]
+	books_data = [scrapePage(book, scrapeBookData) for book in books_links]
+	[print(book['title']) for book in books]
 
 if __name__ == "__main__":
 	main()
