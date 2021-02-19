@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-#import logging
+# import logging
 import requests
+import csv
 from bs4 import BeautifulSoup
 
-#logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
+# logger = logging.getLogger(__name__)
+# logger.setLevel(logging.DEBUG)
 
 def joinUrls(*args):
 	url_parts = [arg.split('/') for arg in args]
@@ -40,6 +41,7 @@ def scrapeBookData(soup, url):
 	and the category), so we can start there.
 	Then there's also an interesting table with organized data
 	"""
+	print(url)
 	product_page = soup.find("article", class_="product_page")
 	table = product_page.find('table')
 	
@@ -110,19 +112,27 @@ def scrapePage(url, scrapeFunction):
 	except Exception as e:
 		print(repr(e))
 
-def main():
-	url_foundation = "http://books.toscrape.com/catalogue/foundation-foundation-publication-order-1_375/index.html"
-	url_sciencefiction = "http://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
-	url_fiction = "http://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
-	url_home = "http://books.toscrape.com/index.html"
+def saveToCsv(data, header, file_path):
+	with open(file_path, 'w', newline='') as f:
+		w = csv.writer(f)
+		for i in range(len(data)):
+			if data[i] is None:
+				print(i)
+		w.writerows([d.values() for d in data if d])
 
-	categories = scrapePage(url_home, scrapeCategories)
+def main():
+	url = "http://books.toscrape.com/index.html"
+	header = []
+	file_path = "./books.csv"
+
+	categories = scrapePage(url, scrapeCategories)
 	# [print(cat) for cat in categories]
-	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories]
-	books_links = [book for cat in books_links for book in cat]
+	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories[3:4]]
+	books_links = [book for cat in books_links for book in cat]		# flatten the list of lists
 	# [print(link) for link in books_links]
 	books_data = [scrapePage(book, scrapeBookData) for book in books_links]
-	[print(book['title']) for book in books]
+	# [print(book['title']) for book in books]
+	saveToCsv(books_data, header, file_path)
 
 if __name__ == "__main__":
 	main()
