@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-# import logging
+import logging
 import requests
 import csv
+# import traceback
+import sys
 from bs4 import BeautifulSoup
 
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
 
 def joinUrls(*args):
 	url_parts = [arg.split('/') for arg in args]
@@ -21,27 +21,27 @@ def joinUrls(*args):
 		url[0] += '/'
 	return "/".join(url)
 
-"""
-returns a dictionary containing basic data about the book :
-product_page_url
-universal_ product_code (upc)
-title
-price_including_tax
-price_excluding_tax
-number_available
-product_description
-category
-review_rating
-image_url
-"""
 def scrapeBookData(soup, url):
 	"""
-	first reduce the scope a bit, so we're not looking through the whole html page
-	product_page contains all the info about the book (except, somehow, the title
-	and the category), so we can start there.
-	Then there's also an interesting table with organized data
+	returns a dictionary containing basic data about the book :
+	product_page_url
+	universal_ product_code (upc)
+	title
+	price_including_tax
+	price_excluding_tax
+	number_available
+	product_description
+	category
+	review_rating
+	image_url
 	"""
-	print(url)
+	
+	# first reduce the scope a bit, so we're not looking through the whole html page
+	# product_page contains all the info about the book (except, somehow, the title
+	# and the category), so we can start there.
+	# Then there's also an interesting table with organized data
+
+	log.info("scraping book data: " + url)
 	product_page = soup.find("article", class_="product_page")
 	table = product_page.find('table')
 	
@@ -78,7 +78,7 @@ def scrapeBookData(soup, url):
 		'price_including_tax': table_data['price_including_tax'][1:],
 		'price_excluding_tax': table_data['price_excluding_tax'][1:],
 		'number_available': int(''.join(filter(str.isdigit, table_data['availability']))),
-		'product_description': desc[:desc.index(".", 120)] + "...",
+		'product_description': desc,
 		'category': "/".join([a.string for a in soup.find(class_="breadcrumb").findAll("a")[2:]]),
 		'review_rating': rating_lookup[product_page.find(class_="star-rating")['class'][1]],
 		'image_url': joinUrls(url, product_page.img['src'])
@@ -91,6 +91,7 @@ def scrapeBookLinks(soup, url):
 	if pager != None and pager.find(class_="next"):
 		next_page = pager.find(class_="next").a['href']
 		links += scrapePage(joinUrls(url[:url.rfind("/")], next_page), scrapeBookLinks)
+	# [print(link) for link in links]
 	return links
 
 def scrapeCategories(soup, url):
@@ -110,7 +111,7 @@ def scrapePage(url, scrapeFunction):
 		else:
 			print(r.status_code)
 	except Exception as e:
-		print(repr(e))
+		log.EXCEPTION(repr(e) + ": " + url)
 
 def saveToCsv(data, header, file_path):
 	with open(file_path, 'w', newline='') as f:
@@ -120,21 +121,29 @@ def saveToCsv(data, header, file_path):
 				print(i)
 		w.writerows([d.values() for d in data if d])
 
-def main():
-	url = "http://books.toscrape.com/index.html"
-	header = []
-	file_path = "./books.csv"
-
+def main(url, file):
 	categories = scrapePage(url, scrapeCategories)
-	# [print(cat) for cat in categories]
 	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories[3:4]]
 	books_links = [book for cat in books_links for book in cat]		# flatten the list of lists
-	# [print(link) for link in books_links]
 	books_data = [scrapePage(book, scrapeBookData) for book in books_links]
 	# [print(book['title']) for book in books]
-	saveToCsv(books_data, header, file_path)
+	# saveToCsv(books_data, header, file)
 
 if __name__ == "__main__":
-	main()
+	log = logging.getLogger(__name__)
+	# if "-d" in sys.argv:
+	# 	print("debug")
+	# 	log.setLevel(logging.DEBUG)
+	# elif "-s" in sys.argv:
+	# 	print("warning")
+	# 	log.setLevel(logging.WARNING)
+	# else:
+	# 	print("info")
+	# 	log.setLevel(logging.INFO)
+	log.setLevel(logging.INFO)
+	log.info("hello")
+	# home_url = "http://books.toscrape.com/index.html"
+	# csv_file = "./books.csv"
+	# main(home_url, csv_file)
 else:
 	print("HELLO THERE")
