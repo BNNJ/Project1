@@ -135,7 +135,7 @@ def format(record):
 	return fmt
 
 def parseArgs():
-	argp = argparse.ArgumentParser(prog="scraper", description="Webscraper for books")
+	argp = argparse.ArgumentParser(description="Webscraper for books")
 	
 	verb = argp.add_mutually_exclusive_group()
 	verb.add_argument(
