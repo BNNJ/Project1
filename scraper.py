@@ -35,7 +35,7 @@ def scrapeBookData(soup, url):
 
 	The particular data we're looking for are:
 		product_page_url
-		universal_ product_code (upc)
+		universal_product_code (upc)
 		title
 		price_including_tax
 		price_excluding_tax
@@ -123,17 +123,8 @@ def scrapePage(url, scrapeFunction):
 def saveToCsv(data, header, file_path):
 	with open(file_path, 'w', newline='') as f:
 		w = csv.writer(f)
-		for i in range(len(data)):
-			if data[i] is None:
-				print(i)
+		w.writerow(header)
 		w.writerows([d.values() for d in data if d])
-
-def main(url, file):
-	categories = scrapePage(url, scrapeCategories)
-	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories]
-	books_links = [book for cat in books_links for book in cat]
-	books_data = [scrapePage(book, scrapeBookData) for book in books_links]
-	saveToCsv(books_data, header, file)
 
 def format(record):
 	""" Formatting function for the logger """
@@ -155,7 +146,13 @@ def parseArgs():
 	verb.add_argument(
 		"-q", "--quiet",
 		action='store_true',
-		help="silences the info logs"
+		help="Silences the info logs"
+	)
+
+	argp.add_argument(
+		"--nosave",
+		action='store_false',
+		help="Don't save to csv"
 	)
 
 	argp.add_argument(
@@ -165,16 +162,28 @@ def parseArgs():
 		nargs='?',
 		default="books.csv"
 	)
-	
-	# argp.add_argument(
-	# 	"-t", "--test",
-	# 	choices=[1],
-	# 	type=int,
-	# 	action='store_true',
-	# 	help=""
-	# )
-
 	return argp.parse_args()
+
+def main(url, file, save=True):
+	categories = scrapePage(url, scrapeCategories)
+	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories[1:2]]
+	books_links = [book for cat in books_links for book in cat]
+	books_data = [scrapePage(book, scrapeBookData) for book in books_links]
+	log.info(f"scraped {len(books_data)} books from {len(categories)} categories")
+	if save:
+		header = [
+			'product_page_url',
+			'universal_product_code',
+			'title',
+			'price_including_tax',
+			'price_excluding_tax',
+			'number_available',
+			'product_description',
+			'category',
+			'review_rating',
+			'image_url'
+		]
+		saveToCsv(books_data, header, file)
 
 if __name__ == "__main__":
 	args = parseArgs()
@@ -186,6 +195,6 @@ if __name__ == "__main__":
 	log.add(sys.stderr, level=lvl, format=format)
 
 	home_url = "http://books.toscrape.com/index.html"
-	main(home_url, args.file)
+	main(home_url, args.file, args.nosave)
 else:
 	print("So I heard you like books...")
