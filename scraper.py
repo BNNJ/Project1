@@ -2,7 +2,7 @@
 
 import requests
 import csv
-# import traceback
+import argparse
 import sys
 from bs4 import BeautifulSoup
 from loguru import logger as log
@@ -130,10 +130,10 @@ def saveToCsv(data, header, file_path):
 
 def main(url, file):
 	categories = scrapePage(url, scrapeCategories)
-	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories[3:4]]	##
+	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories]
 	books_links = [book for cat in books_links for book in cat]
 	books_data = [scrapePage(book, scrapeBookData) for book in books_links]
-	# saveToCsv(books_data, header, file)
+	saveToCsv(books_data, header, file)
 
 def format(record):
 	""" Formatting function for the logger """
@@ -143,18 +143,49 @@ def format(record):
 		fmt = "<level>{level: <8}</level> {message}\n"
 	return fmt
 
+def parseArgs():
+	argp = argparse.ArgumentParser(prog="scraper", description="Webscraper for books")
+	
+	verb = argp.add_mutually_exclusive_group()
+	verb.add_argument(
+		"-d", "--debug",
+		action='store_true',
+		help="Enables debug logs"
+	)
+	verb.add_argument(
+		"-q", "--quiet",
+		action='store_true',
+		help="silences the info logs"
+	)
+
+	argp.add_argument(
+		"file",
+		action='store',
+		help="The csv file to write to (default 'books.csv')",
+		nargs='?',
+		default="books.csv"
+	)
+	
+	# argp.add_argument(
+	# 	"-t", "--test",
+	# 	choices=[1],
+	# 	type=int,
+	# 	action='store_true',
+	# 	help=""
+	# )
+
+	return argp.parse_args()
+
 if __name__ == "__main__":
+	args = parseArgs()
+
+	lvl = "DEBUG" if args.debug			\
+		else "WARNING" if args.quiet	\
+		else "INFO"
 	log.remove()
-	if "--debug" in sys.argv:
-		lvl = "DEBUG"
-	elif "--quiet" in sys.argv:
-		lvl = "WARNING"
-	else:
-		lvl = "INFO"
 	log.add(sys.stderr, level=lvl, format=format)
+
 	home_url = "http://books.toscrape.com/index.html"
-	# home_url = "bla"
-	csv_file = "./books.csv"
-	main(home_url, csv_file)
+	main(home_url, args.file)
 else:
 	print("So I heard you like books...")
