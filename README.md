@@ -5,16 +5,16 @@ A simple webscraper to gather book data from http://books.toscrape.com
 ## usage
 
 ```console 
-foo@bar:~$ ./scraper.py>
+foo@bar:~$ ./scraper.py [-h] [-d | -q] [--nosave] [file]
 ```
-```console
-foo@bar:~$ python scraper.py
-```
-```console
-foo@bar:~$ python
->>> import scraper
-```
-
+## arguments
+| argument      | effect |
+|-|-|
+|file           | The csv file to write to (default 'books.csv') |
+|-h, --help     | show this help message and exit |
+|-d, --debug    | Enables debug logs |
+|-q, --quiet    | Silences the info logs |
+|--nosave       | Don't save to csv |
 ## TODO
 
 So many things
