@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 
-import logging
 import requests
 import csv
 # import traceback
 import sys
 from bs4 import BeautifulSoup
-
+from loguru import logger as log
 
 def joinUrls(*args):
+	"""
+	Returns a single url made of several parts, after cleaning them up.
+
+	Because we might (and do) get relative paths, we need to handle going back
+	to the parent (".."), which is why we need more than a simple concatenation
+	"""
 	url_parts = [arg.split('/') for arg in args]
 	url_parts = [part for part_list in url_parts for part in part_list if part]
 	url = []
@@ -17,34 +22,37 @@ def joinUrls(*args):
 			url.pop()
 		else:
 			url.append(part)
+
+	# Because we got rid of all the '/', we need to fix things by adding one
+	# after "http:" to have proper url formatting.
 	if url[0] == "http:":
 		url[0] += '/'
 	return "/".join(url)
 
 def scrapeBookData(soup, url):
 	"""
-	returns a dictionary containing basic data about the book :
-	product_page_url
-	universal_ product_code (upc)
-	title
-	price_including_tax
-	price_excluding_tax
-	number_available
-	product_description
-	category
-	review_rating
-	image_url
+	Returns a dictionary containing basic data about the book
+
+	The particular data we're looking for are:
+		product_page_url
+		universal_ product_code (upc)
+		title
+		price_including_tax
+		price_excluding_tax
+		number_available
+		product_description
+		category
+		review_rating
+		image_url
 	"""
 	
-	# first reduce the scope a bit, so we're not looking through the whole html page
+	# First reduce the scope a bit, so we're not looking through the whole html page
 	# product_page contains all the info about the book (except, somehow, the title
 	# and the category), so we can start there.
-	# Then there's also an interesting table with organized data
-
-	log.info("scraping book data: " + url)
 	product_page = soup.find("article", class_="product_page")
-	table = product_page.find('table')
-	
+
+	# Then there's also an interesting table with organized data
+	table = product_page.find('table')	
 	table_data_keys = [
 		'UPC',
 		'type',
@@ -60,9 +68,9 @@ def scrapeBookData(soup, url):
 			[td.string for td in table.findAll("td")]
 		)
 	)
-	
+
 	desc = product_page.find(id="product_description").find_next_sibling('p').string
-	
+
 	rating_lookup = {
 		'One': 1,
 		'Two': 2,
@@ -91,7 +99,6 @@ def scrapeBookLinks(soup, url):
 	if pager != None and pager.find(class_="next"):
 		next_page = pager.find(class_="next").a['href']
 		links += scrapePage(joinUrls(url[:url.rfind("/")], next_page), scrapeBookLinks)
-	# [print(link) for link in links]
 	return links
 
 def scrapeCategories(soup, url):
@@ -99,19 +106,19 @@ def scrapeCategories(soup, url):
 	categories = [joinUrls(url[:url.rfind("/")], a['href']) for a in nav_list.findAll("a")]
 	return categories
 
-"""
-wrapper around the scrapeFunction to avoid repeating the basic stuff
-"""
+# @log.catch
 def scrapePage(url, scrapeFunction):
+	""" Wrapper around the scrapeFunction to avoid repeating the basic stuff """
 	try:
 		r = requests.get(url)
 		if r.ok:
+			log.info(f"{scrapeFunction.__name__: <17} {url}")
 			soup = BeautifulSoup(r.text, 'lxml')
 			return scrapeFunction(soup, url)
 		else:
-			print(r.status_code)
+			log.warning("request returned code " + r.status_code + " for " + url)
 	except Exception as e:
-		log.EXCEPTION(repr(e) + ": " + url)
+		log.exception(repr(e) + ": " + url)
 
 def saveToCsv(data, header, file_path):
 	with open(file_path, 'w', newline='') as f:
@@ -123,27 +130,31 @@ def saveToCsv(data, header, file_path):
 
 def main(url, file):
 	categories = scrapePage(url, scrapeCategories)
-	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories[3:4]]
-	books_links = [book for cat in books_links for book in cat]		# flatten the list of lists
+	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories[3:4]]	##
+	books_links = [book for cat in books_links for book in cat]
 	books_data = [scrapePage(book, scrapeBookData) for book in books_links]
-	# [print(book['title']) for book in books]
 	# saveToCsv(books_data, header, file)
 
+def format(record):
+	""" Formatting function for the logger """
+	if record['level'].name == "INFO":
+		fmt = "{message}\n"
+	else:
+		fmt = "<level>{level: <8}</level> {message}\n"
+	return fmt
+
 if __name__ == "__main__":
-	log = logging.getLogger(__name__)
-	# if "-d" in sys.argv:
-	# 	print("debug")
-	# 	log.setLevel(logging.DEBUG)
-	# elif "-s" in sys.argv:
-	# 	print("warning")
-	# 	log.setLevel(logging.WARNING)
-	# else:
-	# 	print("info")
-	# 	log.setLevel(logging.INFO)
-	log.setLevel(logging.INFO)
-	log.info("hello")
-	# home_url = "http://books.toscrape.com/index.html"
-	# csv_file = "./books.csv"
-	# main(home_url, csv_file)
+	log.remove()
+	if "--debug" in sys.argv:
+		lvl = "DEBUG"
+	elif "--quiet" in sys.argv:
+		lvl = "WARNING"
+	else:
+		lvl = "INFO"
+	log.add(sys.stderr, level=lvl, format=format)
+	home_url = "http://books.toscrape.com/index.html"
+	# home_url = "bla"
+	csv_file = "./books.csv"
+	main(home_url, csv_file)
 else:
-	print("HELLO THERE")
+	print("So I heard you like books...")
