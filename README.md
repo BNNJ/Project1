@@ -14,11 +14,12 @@ gh repo clone BNNJ/Project2
 ```
 
 Then go into the directory and source the environment script:
+(for Linux/mac)
 ```console
 cd Project2
 source bin/activate
 ```
-
+(for windows)
 ```console
 env\Scripts\activate.bat
 ````
@@ -35,14 +36,12 @@ foo@bar:~$ ./scraper.py [-h] [-d | -q] [--nosave] [file]
 ```
 
 ## arguments
+
 | argument      | effect |
 |-|-|
 |file           | the csv file to write to (default 'books.csv') |
-|-h, --help     | show this help message and exit |
-|-d, --debug    | enables debug logs |
-|-q, --quiet    | silences the info logs |
+|-h, --help     | show help message and exit |
+|-d, --debug    | enable debug logs |
+|-q, --quiet    | silence the info logs |
 |--nosave       | don't save to csv |
-
-## TODO
-
-images
+|-i, --images   | save images |
