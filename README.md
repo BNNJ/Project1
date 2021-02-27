@@ -6,18 +6,18 @@ A simple webscraper to gather book data from http://books.toscrape.com
 
 First clone the repo :
 ```console
-git clone https://github.com/BNNJ/Project2.git
+foo@bar:~$ git clone https://github.com/BNNJ/Project2.git
 ```
 or with gh CLI:
 ```console
-gh repo clone BNNJ/Project2
+foo@bar:~$ gh repo clone BNNJ/Project2
 ```
 
 Then go into the directory and source the environment script:
 (for Linux/mac)
 ```console
-cd Project2
-source bin/activate
+foo@bar:~$ cd Project2
+foo@bar:~$ source bin/activate
 ```
 (for windows)
 ```console
@@ -26,7 +26,7 @@ env\Scripts\activate.bat
 
 now install required modules:
 ```console
-pip install -r requirement.txt
+foo@bar:~$ pip install -r requirement.txt
 ```
 
 ## usage
