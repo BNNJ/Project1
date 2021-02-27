@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import requests
 import csv
 import argparse
@@ -89,7 +90,7 @@ def scrapeBookData(soup, url):
 		'product_description': desc,
 		'category': "/".join([a.string for a in soup.find(class_="breadcrumb").findAll("a")[2:]]),
 		'review_rating': rating_lookup[product_page.find(class_="star-rating")['class'][1]],
-		'image_url': joinUrls(url, product_page.img['src'])
+		'image_url': f"{url[:25]}/{product_page.img['src'][6:]}"
 	}
 
 def scrapeBookLinks(soup, url):
@@ -126,6 +127,17 @@ def saveToCsv(data, header, file_path):
 		w.writerow(header)
 		w.writerows([d.values() for d in data if d])
 
+def saveImages(books):
+	categories = set([b['category'].replace(' ', '_') for b in books if b])
+	[os.makedirs(f"images/{cat}", exist_ok=True) for cat in categories]
+	for b in books:
+		if b:
+			log.info(f"saving {b['title']}...")
+			path = f"images/{b['category'].replace(' ', '_')}/{b['title'].replace(' ', '_').replace('/', '-')}.jpg"
+			img = requests.get(b['image_url']).content
+			with open(path, 'wb') as f:
+				f.write(img)
+
 def format(record):
 	""" Formatting function for the logger """
 	if record['level'].name == "INFO":
@@ -156,6 +168,12 @@ def parseArgs():
 	)
 
 	argp.add_argument(
+		"-i", "--images",
+		action='store_true',
+		help="Save images"
+	)
+
+	argp.add_argument(
 		"file",
 		action='store',
 		help="The csv file to write to (default 'books.csv')",
@@ -164,11 +182,11 @@ def parseArgs():
 	)
 	return argp.parse_args()
 
-def main(url, file, save=True):
+def main(url, file, save=True, images=False):
 	categories = scrapePage(url, scrapeCategories)
-	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories[1:2]]
+	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories]
 	books_links = [book for cat in books_links for book in cat]
-	books_data = [scrapePage(book, scrapeBookData) for book in books_links]
+	books_data = [scrapePage(book, scrapeBookData) for book in books_links if book]
 	log.info(f"scraped {len(books_data)} books from {len(categories)} categories")
 	if save:
 		header = [
@@ -184,6 +202,8 @@ def main(url, file, save=True):
 			'image_url'
 		]
 		saveToCsv(books_data, header, file)
+	if images:
+		saveImages(books_data)
 
 if __name__ == "__main__":
 	args = parseArgs()
@@ -195,6 +215,6 @@ if __name__ == "__main__":
 	log.add(sys.stderr, level=lvl, format=format)
 
 	home_url = "http://books.toscrape.com/index.html"
-	main(home_url, args.file, args.nosave)
+	main(home_url, args.file, args.nosave, args.images)
 else:
 	print("So I heard you like books...")
