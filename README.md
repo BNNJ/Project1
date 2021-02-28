@@ -16,12 +16,12 @@ gh repo clone BNNJ/Project2
 Then go into the directory and source the environment script:
 Platform    | Shell             | Command to activate virtual environment
 ------------|-------------------|----------------------------------------
-POSIX       | bash/zsh          | `$ source <venv>/bin/activate`
-            | fish              | `$ source <venv>/bin/activate.fish`
-            | csh/tcsh          | `$ source <venv>/bin/activate.csh`
-            | PowerShell Core   | `$ <venv>/bin/Activate.ps1`
-Windows     | cmd.exe           | `C:\> <venv>\Scripts\activate.bat`
-            | PowerShell        | `PS C:\> <venv>\Scripts\Activate.ps1`
+POSIX       | bash/zsh          | `$ source ./bin/activate`
+            | fish              | `$ source ./bin/activate.fish`
+            | csh/tcsh          | `$ source ./bin/activate.csh`
+            | PowerShell Core   | `$ ./bin/Activate.ps1`
+Windows     | cmd.exe           | `C:\> .\Scripts\activate.bat`
+            | PowerShell        | `PS C:\> .\Scripts\Activate.ps1`
 
 now install required modules:
 ```bash
