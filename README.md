@@ -15,6 +15,7 @@ gh repo clone BNNJ/Project2
 
 Then go into the directory and make a virtual environment:
 ```bash
+cd Project2
 python3 -m venv .
 ```
 
