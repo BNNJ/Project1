@@ -13,7 +13,12 @@ or with gh CLI:
 gh repo clone BNNJ/Project2
 ```
 
-Then go into the directory and source the environment script:
+Then go into the directory and make a virtual environment:
+```bash
+python3 -m venv .
+```
+
+Source the environment script:
 | Platform    | Shell             | Command to activate virtual environment |
 | ------------|-------------------|---------------------------------------- |
 | POSIX       | bash/zsh          | `$ source ./bin/activate`               |
