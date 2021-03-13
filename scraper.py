@@ -99,11 +99,12 @@ def scrapeBookLinks(soup, url):
 	pager = soup.find(class_="pager")
 	if pager != None and pager.find(class_="next"):
 		next_page = pager.find(class_="next").a['href']
-		links += scrapePage(joinUrls(url[:url.rfind("/")], next_page), scrapeBookLinks)
+		links += scrapePage(url[:url.rfind("/")] + "/" + next_page, scrapeBookLinks)
 	return links
 
 def scrapeCategories(soup, url):
 	nav_list = soup.find(class_="nav nav-list").ul
+	
 	categories = [joinUrls(url[:url.rfind("/")], a['href']) for a in nav_list.findAll("a")]
 	return categories
 
@@ -121,20 +122,23 @@ def scrapePage(url, scrapeFunction):
 	except Exception as e:
 		log.exception(repr(e) + ": " + url)
 
-def saveToCsv(data, header, file_path):
-	with open(file_path, 'w', newline='') as f:
+def saveToCsv(category, books):
+	os.makedirs("csv", exist_ok=True)
+	log.info(f"exporting to {category}.csv...")
+	with open(f"csv/{category}.csv", 'w', newline='') as f:
 		w = csv.writer(f)
-		w.writerow(header)
-		w.writerows([d.values() for d in data if d])
+		w.writerow(list(books[0].keys()))
+		w.writerows([book.values() for book in books if book])
 
-def saveImages(books):
-	categories = set([b['category'].replace(' ', '_') for b in books if b])
-	[os.makedirs(f"images/{cat}", exist_ok=True) for cat in categories]
-	for b in books:
-		if b:
-			log.info(f"saving {b['title']}...")
-			path = f"images/{b['category'].replace(' ', '_')}/{b['title'].replace(' ', '_').replace('/', '-')}.jpg"
-			img = requests.get(b['image_url']).content
+def saveImages(category, books):
+	category = category.capitalize()
+	os.makedirs(f"images/{category}", exist_ok=True)
+	for book in books:
+		if book:
+			log.info(f"saving {book['title']}...")
+			title = book['title'].replace(' ', '_').replace('/', '-')
+			path = f"images/{category}/{title}.jpg"
+			img = requests.get(book['image_url']).content
 			with open(path, 'wb') as f:
 				f.write(img)
 
@@ -173,37 +177,17 @@ def parseArgs():
 		help="Save images"
 	)
 
-	argp.add_argument(
-		"file",
-		action='store',
-		help="The csv file to write to (default 'books.csv')",
-		nargs='?',
-		default="books.csv"
-	)
 	return argp.parse_args()
 
-def main(url, file, save=True, images=False):
-	categories = scrapePage(url, scrapeCategories)
-	books_links = [scrapePage(cat, scrapeBookLinks) for cat in categories]
-	books_links = [book for cat in books_links for book in cat]
-	books_data = [scrapePage(book, scrapeBookData) for book in books_links if book]
-	log.info(f"scraped {len(books_data)} books from {len(categories)} categories")
-	if save:
-		header = [
-			'product_page_url',
-			'universal_product_code',
-			'title',
-			'price_including_tax',
-			'price_excluding_tax',
-			'number_available',
-			'product_description',
-			'category',
-			'review_rating',
-			'image_url'
-		]
-		saveToCsv(books_data, header, file)
-	if images:
-		saveImages(books_data)
+def main(url, save=True, images=False):
+	for category in scrapePage(url, scrapeCategories):
+		category_name = category[51:category.rfind("_")]
+		books_url = scrapePage(category, scrapeBookLinks)
+		books_data = [scrapePage(book, scrapeBookData) for book in books_url]
+		if save:
+			saveToCsv(category_name, books_data)
+		if images:
+			saveImages(category_name, books_data)
 
 if __name__ == "__main__":
 	args = parseArgs()
@@ -215,6 +199,6 @@ if __name__ == "__main__":
 	log.add(sys.stderr, level=lvl, format=format)
 
 	home_url = "http://books.toscrape.com/index.html"
-	main(home_url, args.file, args.nosave, args.images)
+	main(home_url, args.nosave, args.images)
 else:
 	print("So I heard you like books...")

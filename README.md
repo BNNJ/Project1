@@ -37,14 +37,13 @@ pip install -r requirement.txt
 ## usage
 
 ```bash 
-./scraper.py [-h] [-d | -q] [--nosave] [file]
+./scraper.py [-h] [-d | -q] [--nosave]
 ```
 
 ## arguments
 
 argument       | effect
 ---------------|-------
-file           | the csv file to write to (default 'books.csv')
 -h, --help     | show help message and exit
 -d, --debug    | enable debug logs
 -q, --quiet    | silence the info logs
